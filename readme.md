@@ -3,11 +3,11 @@
 * [@honeo/lru-cache](https://www.npmjs.com/package/@honeo/lru-cache)
 
 ## なにこれ
-Mapと同じ感覚で使えるかんたんLRU Cacheモジュール。
+Map実装のかんたんLRU Cacheモジュール。
 
 ## 使い方
 ```bash
-$ npm i -S @honeo/lru-cache
+$ npm i @honeo/lru-cache
 ```
 ```js
 const LRUCache = require('@honeo/lru-cache');
@@ -22,6 +22,7 @@ for(let [key, value] of cache){
 ```
 
 ## API
+[Map](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Map)を継承している。
 
 ### new LRUCache([option])
 インスタンスを作る。
@@ -40,24 +41,6 @@ const cache = new LRUCache({
 #### expireについて
 Lazy Expiration実装のため、すぐにGCさせたい場合は明示的に#delete()などで要素を削除する必要がある。また#sizeは期限切れの要素を含んだ数を返す。
 
-### LRUCache#delete(key)
-キャッシュされている引数のkeyを削除する。
-```js
-const bool = cache.delete('hoge');
-```
-
-### LRUCache#get(key)
-引数をkeyとしてキャッシュされている値を返す。
-```js
-const value = cache.get('hoge');
-```
-
-### LRUCache#has(key)
-引数のkeyがキャッシュされているか。
-```js
-const bool = cache.has('hoge');
-```
-
 <!--
 ### LRUCache#peek(key)
 \#get()のキャッシュ順位を更新しない版。
@@ -71,7 +54,7 @@ const value = cache.get('hoge');
 ```js
 cache.set('hoge', 'hogehoge');
 
-// expire: 1min
+// expire: 1m
 cache.set('fuga', 'fugafuga', 1000*60);
 ```
 
@@ -79,18 +62,16 @@ cache.set('fuga', 'fugafuga', 1000*60);
 インスタンスの最大キャッシュ数を取得・設定する。
 ```js
 const number = cache.capacity;
-cache.capacity = number*2;
+
+// Max: 1000
+cache.capacity = 1000;
 ```
 
 ### LRUCache#expire
 インスタンスの標準キャッシュ期限を取得・設定する。
 ```js
-const ms = cache.expire;
-cache.expire = ms*2;
-```
+const number = cache.expire;
 
-### LRUCache#size
-登録されているキャッシュ数(期限切れを含む)を返す。
-```js
-const number = cache.size;
+// expire: 1h
+cache.expire = 1000*60*60;
 ```

@@ -3,65 +3,56 @@
 // Var
 const weakmap = new WeakMap(); // インスタンスをkey,対になるobjectがvalueとして入る
 
-class LRUCache {
+class LRUCache extends Map {
 
 	/*
 		weakmapに this:対になるobject を突っ込む
 
 		object {
 			capacity: number,
-			expire: number,
-			map {
-				key: object {
-					value, 登録したkeyに対する値
-					expire: number, 期限ms
-				}
-			}
+			expire: number
 		}
-
 	*/
 	constructor({capacity=Infinity, expire=Infinity}={}){
 		// validation
 		if(typeof capacity!=='number' || typeof expire!=='number'){
 			throw new TypeError('Invalid arguments');
 		}
-		// 自身を対になるオブジェクトをweakmapに登録
+		super();
+		// 自身の対になる設定オブジェクトをweakmapに登録
 		weakmap.set(this, {
 			capacity,
-			expire,
-			map: new Map()
+			expire
 		});
 	}
 
 	/*
 		いてれーたー
-			mapをそのまんま流用
+			keyはそのまま,valueは分解して渡す
 	*/
 	*[Symbol.iterator](){
-		const map = weakmap.get(this).map;
-		for(let [key, {expire, value}] of map){
+		const iterator = Map.prototype.entries.call(this);
+		for(let [key, {expire, value}] of iterator){
 			yield [key, value];
 		}
 	}
 
 	/*
-		キャッシュされた全てのkey:valueを削除する
-			引数
-			返り値
+		#entries()
+			上をそのまま使いまわし
 	*/
-	clear(){
-		weakmap.get(this).map.clear();
+	entries(){
+		return this[Symbol.iterator]();
 	}
 
 	/*
-		引数keyに対する値を削除する
-			引数
-				1: key
-			返り値
-				boolean
+		#forEach()
+			valueを分解して渡す
 	*/
-	delete(key){
-		return weakmap.get(this).map.delete(key);
+	forEach(callback, thisArg){
+		Map.prototype.forEach.call(this, ({value}, key, map)=>{
+			callback.call(thisArg, value, key, map);
+		});
 	}
 
 
@@ -76,9 +67,8 @@ class LRUCache {
 				2: value or undefined
 	*/
 	get(key){
-		const map = weakmap.get(this).map;
-		if( map.has(key) ){
-			const {expire, value} = map.get(key);
+		if( Map.prototype.has.call(this, key) ){
+			const {expire, value} = Map.prototype.get.call(this, key);
 			const isTimeout = expire < Date.now();
 			if( !isTimeout ){
 				this.set(key, value);
@@ -92,13 +82,7 @@ class LRUCache {
 			期限処理を端折るためgetを使いまわすやっつけ実装。
 	*/
 	has(key){
-		const map = weakmap.get(this).map;
-		if( map.has(key) ){
-			const isTimeout = map.get(key).expire < Date.now();
-			return !isTimeout;
-		}else{
-			return false;
-		}
+		return !!this.get(key);
 	}
 
 	/*
@@ -111,10 +95,9 @@ class LRUCache {
 			返り値
 				2: value or undefined
 	*/
-	get(key){
-		const map = weakmap.get(this).map;
-		if( map.has(key) ){
-			const {expire, value} = map.get(key);
+	peek(key){
+		if( this.has(key) ){
+			const {expire, value} = this.get(key);
 			const isTimeout = expire < Date.now();
 			if( !isTimeout ){
 				return value;
@@ -134,13 +117,25 @@ class LRUCache {
 				this
 	*/
 	set(key, value, _expire){
-		const {expire, map} = weakmap.get(this);
-		map.set(key, {
+		//console.log('#set', key, value, _expire);
+		const {expire} = weakmap.get(this);
+		Map.prototype.set.call(this, key, {
 			expire: (_expire||expire)+Date.now(),
 			value
 		});
 		cacheSlicer.call(this);
 		return this;
+	}
+
+	/*
+		#values()
+			値を分解して渡す
+	*/
+	*values(){
+		const iterator = Map.prototype.values.call(this);
+		for(let {expire, value} of iterator){
+			yield value;
+		}
 	}
 
 	/*
@@ -177,15 +172,6 @@ class LRUCache {
 		return weakmap.get(this).expire;
 	}
 
-	/*
-		期限切れを含むキャッシュ数
-			返り値
-				number
-	*/
-	get size(){
-		return weakmap.get(this).map.size;
-	}
-
 }
 
 /*
@@ -195,12 +181,12 @@ class LRUCache {
 		インスタンスをthisにして実行する
 */
 function cacheSlicer(){
-	const {capacity, map} = weakmap.get(this);
-	if( capacity<map.size ){
-		const num_over = map.size - capacity;
+	const {capacity} = weakmap.get(this);
+	if( capacity<this.size ){
+		const num_over = this.size - capacity;
 		let count = 0;
-		for(let key of map.keys() ){
-			map.delete(key);
+		for(let key of this.keys() ){
+			this.delete(key);
 			count++;
 			if(count >= num_over){
 				break;
