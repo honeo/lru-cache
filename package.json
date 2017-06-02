@@ -1,6 +1,6 @@
 {
   "name": "@honeo/lru-cache",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Map実装のLRU Cache",
   "main": "index.js",
   "scripts": {
